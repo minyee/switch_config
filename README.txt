@@ -1,0 +1,1 @@
+This library is written in python, and contains the code for using Edmonds Karp network flow to find what optical switch configurations that are needed to make Flexfly's actual bandwidth connectivity between groups match what is desbribed by the bandwidth-allocation matrix
