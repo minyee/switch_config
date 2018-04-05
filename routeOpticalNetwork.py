@@ -47,24 +47,39 @@ def generateNetworkTopology(coverMatrix):
 				if opticalSwitchID not in opticalSwitchSet.keys():
 					opticalSwitchSet[opticalSwitchID] = []
 				opticalSwitchSet[opticalSwitchID].append((row,col))
+	
+	# calculate the offset for optical switches
 	opticalSwitchOffset = 2 * nElecSwitches
 	# now make all the optical switches and their ports
+	radix = sqrt(len(opticalSwitchSet[0]))
 	for opticalID in opticalSwitchSet.keys():
-		portCnt = 0
-		realOpticalSwitchIDinGraph = (opticalSwitchOffset + opticalID) * radix
-		inportNodes = {}
-		outportNodes = {}
+		inportCnt = 0
+		outportCnt = 0
+		inportToSrcNode = {} # maps input switchid to the inport id of this optical switch
+		outportToDstNode = {}
 		for i, j in opticalSwitchSet[opticalID]:
-			
-			srcNode = networkGraph.getNodeByName("src%d" % i)
-			dstNode = networkGraph.getNodeByName("dst%d" % j)
-			inportNode = NetworkNode(realOpticalSwitchIDinGraph)
-			srcNode.addNeighbor()
-			portCnt += 1
-
-	# optical switches start from id = nElecSwitches
-	
-
+			if i not in inportToSrcNode.keys():
+				inportToSrcNode[i] = inportCnt
+				inportNode = NetworkNode(opticalSwitchOffset + inportCnt, True)
+				inportNode.addName("os%d-inport%d" % (opticalID, inportCnt))
+				(networkGraph.getNodeByName("src%d"%j)).addNeighbor(inportNode)
+				networkGraph.addNode(inportNode)
+				inportCnt += 1
+			if j not in outportToDstNode.keys():
+				outportToDstNode[j] = outportCnt
+				outportNode = NetworkNode(opticalSwitchOffset + radix + outportCnt, True)
+				outportNode.addName("os%d-outport%d" % (opticalID, outportCnt))
+				outportNode.addNeighbor(networkGraph.getNodeByName("dst%d"%j))
+				networkGraph.addNode(outportNode)
+				outportCnt += 1 
+		assert(outportCnt == inportCnt)
+		# Finally form all to all connection between the inport nodes and outport nodes within this optical switch
+		for inport in range(inportCnt):
+			inportNode = networkGraph.getNodeByName("os%d-inport%d" % (opticalID, inport))
+			for outport in range(outportCnt):
+				outportNode = networkGraph.getNodeByName("os%d-outport%d" % (opticalID, outport))
+				inportNode.addNeighbor(outportNode)
+		opticalSwitchOffset += (outportCnt + inportCnt)
 	return networkGraph
 
 
