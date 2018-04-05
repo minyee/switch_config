@@ -7,12 +7,12 @@ from myGraph import *
 def readMatrix(filename):
 	f = open ( filename , 'r')
 	l = [ map(int,line.split()) for line in f ]
-	print l
+	#print l
 	return l
 
 def formNetwork(MatrixFilename, OutputAdjacencyMatrixFilename):
 	linkAllocationMatrix = readMatrix(MatrixFilename)
-	print linkAllocationMatrix
+	#print linkAllocationMatrix
 	numGroups = len(linkAllocationMatrix)
 	numSwitches = numGroups - 1
 	nodeID = 0
@@ -80,9 +80,8 @@ def formNetwork(MatrixFilename, OutputAdjacencyMatrixFilename):
 		#lastUsedPort[swid] += 1 
 
 	adjMatrix = [0] * len(NodesCollection)
-	print "falling apart"
-	print nodeID
-	print len(NodesCollection)
+	#print nodeID
+	#print len(NodesCollection)
 	for nodeName, node in NodesCollection.items():
 		vect = [0] * len(NodesCollection)
 		for targetNode, weight in node.outgoingEdges.items():
