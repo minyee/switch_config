@@ -1,15 +1,17 @@
 import sys
+import math
 from NetworkGraph import *
 
 def readMatrixCoveringFile(filename):
+	coverMatrix = []
 	f = open(filename)
 
 	f.close()
-
+	return coverMatrix
 # takes in a networkGraph, which vertices are comprised of electrical/optical switches, not endpoints.
 # Each node should indicate whether if it is an optical switch or not
 # Communication demand matrix must be n-by-n
-def routeOpticalDomain(networkGraph, communicationDemand):
+def urgencyFactorBasedRouting(networkGraph, communicationDemand):
 	matrixSize = len(communicationDemand)
 	urgencyFactorMatrix = [0] * matrixSize
 	stop = False
@@ -22,9 +24,45 @@ def routeOpticalDomain(networkGraph, communicationDemand):
 				if urgencyMatrix[i][j] > maxUrgency:
 					maxi = i
 					maxj = j
-
-
 	return
+
+# fcfs means first-come-first-serve
+def fcfsBasedRouting(networkGraph, communicationDemand):
+	matrixSize = len(communicationDemand)
+	flowSatisfied = [0] * matrixSize
+	for i in range(matrixSize):
+		flowSatisfied[i] = [0] * matrixSize
+		srcNode = networkGraph.getNodeByName("src%d" % i)
+		for j in range(matrixSize):
+			dstNode = networkGraph.getNodeByName("dst%d" % j)
+			cannotSatisfy = False
+			while not cannotSatisfy and flowSatisfied[i][j] < communicationDemand[i][j]:
+				paths = route(srcNode, dstNode, 3, networkGraph)
+				print "Total number of paths is: %d" % len(paths)
+				if len(paths) > 0:
+					print  "paths length is: %d " % len(paths[0])
+					offset = 0
+					for pathNode in paths[0]:
+						
+						if pathNode.getName()[:2] == "os":
+							outport = paths[0][offset + 1]
+							print pathNode.getName()
+							print outport.getName()
+							bool1 = pathNode.deleteEdge(outport)
+							assert(bool1)
+							break
+						offset += 1
+					flowSatisfied[i][j] += 1
+				else:
+					cannotSatisfy = True
+	sum1 = 0
+	sum2 = 0
+	for i in range(matrixSize):
+		for j in range(matrixSize):
+			sum1 += flowSatisfied[i][j]
+			sum2 += communicationDemand[i][j]
+	return float(sum1)/float(sum2)
+
 
 def generateNetworkTopology(coverMatrix):
 	networkGraph = NetworkGraph()
@@ -49,9 +87,9 @@ def generateNetworkTopology(coverMatrix):
 				opticalSwitchSet[opticalSwitchID].append((row,col))
 	
 	# calculate the offset for optical switches
-	opticalSwitchOffset = 2 * nElecSwitches
+	opticalSwitchOffset = int(2 * nElecSwitches)
 	# now make all the optical switches and their ports
-	radix = sqrt(len(opticalSwitchSet[0]))
+	radix = math.sqrt(len(opticalSwitchSet[0]))
 	for opticalID in opticalSwitchSet.keys():
 		inportCnt = 0
 		outportCnt = 0
@@ -62,7 +100,7 @@ def generateNetworkTopology(coverMatrix):
 				inportToSrcNode[i] = inportCnt
 				inportNode = NetworkNode(opticalSwitchOffset + inportCnt, True)
 				inportNode.addName("os%d-inport%d" % (opticalID, inportCnt))
-				(networkGraph.getNodeByName("src%d"%j)).addNeighbor(inportNode)
+				(networkGraph.getNodeByName("src%d"%i)).addNeighbor(inportNode)
 				networkGraph.addNode(inportNode)
 				inportCnt += 1
 			if j not in outportToDstNode.keys():
@@ -86,10 +124,11 @@ def generateNetworkTopology(coverMatrix):
 # Performs DFS on graph to find all paths from src to dst in graph within distLimit
 def route(src, dst, distLimit, graph):
 	# perform dfs on graph
-	graphSize = graph.numVertices
+	assert(src is not None and dst is not None)
+	graphSize = graph.numVertices()
 	stack = []
 	paths = []
-	distance = [sys.maxsize] * graphSize
+	distance = [int(sys.maxsize)] * graphSize
 	visited = [False] * graphSize
 	distance[src.getID()] = 0
 	parent = [None] * graphSize
@@ -97,29 +136,63 @@ def route(src, dst, distLimit, graph):
 	while len(stack) > 0:
 		currNode = stack.pop()
 		neighbors = currNode.getNeighborsList()
+		visited[currNode.getID()] = True
 		for neighbor in neighbors:
 			
 			if distance[neighbor.getID()] > (distance[currNode.getID()] + 1):
 				distance[neighbor.getID()] = (distance[currNode.getID()] + 1)
-				parent[neighbor.getID()] = currNode
+				
 
 			# check if our neighbor is the destination node
 			if neighbor is dst:
+				parent[dst.getID()] = currNode
 				if (distance[currNode.getID()] + 1) <= distLimit:
 					path = []
+
 					tmpCurrNode = currNode
 					tmpParent = parent[currNode.getID()]
-					path.append()
-					while tmpParent is not src:
-						path.append(tmpParent)
+					path.append(neighbor)
+					while tmpCurrNode is not src:
+						path.append(tmpCurrNode)
 						tmpCurrNode = tmpParent
 						tmpParent = parent[tmpCurrNode.getID()]
 					path.append(src)				
 					path.reverse() # reverse
+					print ""
+					for pathNode in path:
+						print pathNode.getName()
+					print ""
 					paths.append(path)
 			else:
 				if not visited[neighbor.getID()]:
-					stack.append(neighbor)
 					parent[neighbor.getID()] = currNode
-		visited[currNode.getID()] = True
+					stack.append(neighbor)
+					#parent[neighbor.getID()] = currNode
+		
 	return paths
+
+
+
+
+# The first testing method for this routing function
+def test1():
+	distLimit = 4
+	coverMatrix = [[[0,1],[0,1],[0,1]],[[0,1],[0,1],[0,1]],[[0,1],[0,1],[0,1]]]
+	commRequirement = [[0, 1, 1],[1, 0, 1],[1, 1, 0]]
+	graph = generateNetworkTopology(coverMatrix)
+	for node in graph.nodesCollection:
+
+		print "Current node is " + node.getName()
+		print "id is: %d" % node.getID() 
+		i = 0
+		for neighbor in node.neighbors:
+			string = ("neighbor %d" %  i) + " is " + neighbor.getName()
+			print string
+			i += 1
+	routingYield = fcfsBasedRouting(graph, commRequirement)
+	print "The yield for fcfs routing is: %f" % routingYield
+
+
+print "Entering routeOpticalNetwork code"
+test1()
+print "Exited Cleanly"

@@ -18,19 +18,19 @@ class NetworkNode:
 		return
 
 	def getNeighborsList(self):
-		return this.neighbors
+		return self.neighbors
 
 	def getID(self):
-		return self.id
+		return int(self.id)
 
 	def getName(self):
 		return self.name
 
 	# returns a boolean true if the neighbor is deleted, and false otherwise
-	def deleteEdge(self, neighborID):
+	def deleteEdge(self, neighbor):
 		index = 0
-		for neighbor in self.neighbors:
-			if neighbor.getID() == neighborID:
+		for n in self.neighbors:
+			if n == neighbor:
 				self.neighbors.pop(index)
 				return True
 			index += 1
@@ -60,7 +60,7 @@ class NetworkGraph:
 
 	def getNodeByName(self, name):
 		for graphNode in self.nodesCollection:
-			if node.getName() == name:
+			if graphNode.getName() == name:
 				return graphNode
 		return None
 
