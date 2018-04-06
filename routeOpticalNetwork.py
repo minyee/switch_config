@@ -8,6 +8,43 @@ def readMatrixCoveringFile(filename):
 
 	f.close()
 	return coverMatrix
+
+def readCommunicationDemandMatrix(filename):
+	f = open(filename, 'r')
+	matrix = []
+	matrixSize = 0
+	lines = f.readlines()
+	firstRow = True
+	for line in lines:
+		if firstRow:
+			firstRow = False
+			matrixSize = int(line)
+		else:
+			line = line.split()
+			matrix.append(line.split()) 
+	f.close()
+	return matrix
+
+	
+# Finds the maximum entry, row and column of the maximum in the matrix
+def findMaxInMatrix(matrix):
+	maxTmp = -1
+	i = 0
+	j = 0
+	maxi = 0
+	maxj = 0
+	for line in matrix:
+		for entry in line:
+			if maxTmp < entry:
+				maxTmp = entry
+				maxi = i
+				maxj = j
+			j += 1
+		i += 1
+	return maxTmp, maxi, maxj
+
+
+
 # takes in a networkGraph, which vertices are comprised of electrical/optical switches, not endpoints.
 # Each node should indicate whether if it is an optical switch or not
 # Communication demand matrix must be n-by-n
@@ -22,8 +59,8 @@ def urgencyFactorBasedRouting(networkGraph, communicationDemand):
 		for i in range(matrixSize):
 			for j in range(matrixSize):
 				if urgencyMatrix[i][j] > maxUrgency:
-					maxi = i
-					maxj = j
+					# maxi = i
+					# maxj = j
 	return
 
 # fcfs means first-come-first-serve
@@ -38,18 +75,12 @@ def fcfsBasedRouting(networkGraph, communicationDemand):
 			cannotSatisfy = False
 			while not cannotSatisfy and flowSatisfied[i][j] < communicationDemand[i][j]:
 				paths = route(srcNode, dstNode, 3, networkGraph)
-				print "Total number of paths is: %d" % len(paths)
 				if len(paths) > 0:
-					print  "paths length is: %d " % len(paths[0])
 					offset = 0
 					for pathNode in paths[0]:
-						
 						if pathNode.getName()[:2] == "os":
 							outport = paths[0][offset + 1]
-							print pathNode.getName()
-							print outport.getName()
-							bool1 = pathNode.deleteEdge(outport)
-							assert(bool1)
+							assert(pathNode.deleteEdge(outport))
 							break
 						offset += 1
 					flowSatisfied[i][j] += 1
@@ -158,10 +189,6 @@ def route(src, dst, distLimit, graph):
 						tmpParent = parent[tmpCurrNode.getID()]
 					path.append(src)				
 					path.reverse() # reverse
-					print ""
-					for pathNode in path:
-						print pathNode.getName()
-					print ""
 					paths.append(path)
 			else:
 				if not visited[neighbor.getID()]:
@@ -171,24 +198,20 @@ def route(src, dst, distLimit, graph):
 		
 	return paths
 
-
+def printTopology(networkGraph):
+	for node in networkGraph.nodesCollection:
+		print "Current node is: " + node.getName()
+		i = 0
+		for neighbor in node.getNeighborsList():
+			print("neighbor %d" % i)
 
 
 # The first testing method for this routing function
 def test1():
-	distLimit = 4
 	coverMatrix = [[[0,1],[0,1],[0,1]],[[0,1],[0,1],[0,1]],[[0,1],[0,1],[0,1]]]
 	commRequirement = [[0, 1, 1],[1, 0, 1],[1, 1, 0]]
+	commRequirement = [[0, 2, 0],[0, 0, 2],[2, 0, 0]]
 	graph = generateNetworkTopology(coverMatrix)
-	for node in graph.nodesCollection:
-
-		print "Current node is " + node.getName()
-		print "id is: %d" % node.getID() 
-		i = 0
-		for neighbor in node.neighbors:
-			string = ("neighbor %d" %  i) + " is " + neighbor.getName()
-			print string
-			i += 1
 	routingYield = fcfsBasedRouting(graph, commRequirement)
 	print "The yield for fcfs routing is: %f" % routingYield
 
