@@ -1,6 +1,7 @@
 import sys
 import math
 from NetworkGraph import *
+from canonicalTopology import *
 
 def readMatrixCoveringFile(filename):
 	coverMatrix = []
@@ -21,11 +22,11 @@ def readCommunicationDemandMatrix(filename):
 			matrixSize = int(line)
 		else:
 			line = line.split()
-			matrix.append(line.split()) 
+			nline = [int(i) for i in line]
+			matrix.append(nline) 
 	f.close()
 	return matrix
 
-	
 # Finds the maximum entry, row and column of the maximum in the matrix
 def findMaxInMatrix(matrix):
 	maxTmp = -1
@@ -59,7 +60,7 @@ def urgencyFactorBasedRouting(networkGraph, communicationDemand):
 		for i in range(matrixSize):
 			for j in range(matrixSize):
 				if urgencyMatrix[i][j] > maxUrgency:
-					# maxi = i
+					maxi = i
 					# maxj = j
 	return
 
@@ -214,8 +215,21 @@ def test1():
 	graph = generateNetworkTopology(coverMatrix)
 	routingYield = fcfsBasedRouting(graph, commRequirement)
 	print "The yield for fcfs routing is: %f" % routingYield
+	return 
+
+
+def test2():
+	groups = int(sys.argv[1])
+	demandMatrix = readCommunicationDemandMatrix(sys.argv[2])
+	topolMatrix = generateCanonicalTopology(groups)
+	#demandMatrix = generateUniformDemandMatrix(groups)
+	print demandMatrix
+	network = generateNetworkTopology(topolMatrix)
+	yield1 = fcfsBasedRouting(network, demandMatrix)
+	print "yield is: %f" % yield1
+	return
 
 
 print "Entering routeOpticalNetwork code"
-test1()
+test2()
 print "Exited Cleanly"
